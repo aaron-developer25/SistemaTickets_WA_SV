@@ -1,0 +1,218 @@
+﻿@page "/"
+
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+@using Microsoft.JSInterop
+
+
+<div class="inicio">
+    <div class="bloque productos-vendidos">
+        <img src="./recursos/prioridad.png" alt="ico">
+        <h2>PRIORIDADES TOTALES</h2>
+        <p>@cantidadPrioridades</p>
+        <p class="descripcion">Cantidad de prioridades guardadas</p>
+    </div>
+    <div class="bloque gananciasT">
+        <img src="./recursos/sistema.png" alt="ico">
+        <h2>SISTEMAS GUARDADOS</h2>
+        <p>@cantidadsistemas</p>
+        <p class="descripcion"><span>Cantidad de sistemas en producción</span></p>
+    </div>
+    <div class="bloque deudasT">
+        <img src="./recursos/clientes.png" alt="ico">
+        <h2>CLIENTES TOTALES</h2>
+        <p>@cantidadclientes</p>
+        <p class="descripcion"><span>Se filtra el total de clientes registrados</span></p>
+    </div>
+    <div class="bloque pedidos">
+        <img src="./recursos/detalle.png" alt="ico">
+        <h2>TICKETS REGISTRADO</h2>
+        <p>@cantidadticket</p>
+        <p class="descripcion"><span>Cantidad de tickets registrados</span></p>
+    </div>
+    <div class="bloque productos">
+        <img src="./recursos/ticketpendiente.png" alt="ico">
+        <h2>TICKETS PENDIENTES HOY</h2>
+        <p>@cantidadtickethoy</p>
+        <p class="descripcion"><span>Cantidad de tickets de hoy</span></p>
+    </div>
+</div>
+
+
+<div class="fila">
+    <div class="chart-container">
+        <h2>SISTEMA CON MAS TICKETS</h2>
+        <canvas id="sistemastickets" class="chart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2>PRIORIDADES MAS UTILIZADAS</h2>
+        <canvas id="propiedadesusadas" class="chart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2>CLIENTES CON MAS TICKETS</h2>
+        <canvas id="clientesticket" class="chart"></canvas>
+    </div>
+</div>
+
+
+<script>
+
+    function graficos(sistemas, cantidades, idelemento, descripcion, tipografico, direccion) {
+        if (tipografico === "line") {
+            var ctx = document.getElementById(idelemento).getContext('2d');
+            var myChart = new Chart(ctx, {
+                type: tipografico,
+                data: {
+                    labels: sistemas,
+                    datasets: [{
+                        label: descripcion,
+                        data: cantidades,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        fill: true
+                    }]
+                },
+                options: {
+                    indexAxis: direccion,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        else {
+            var ctx = document.getElementById(idelemento).getContext('2d');
+            var myChart = new Chart(ctx, {
+                type: tipografico,
+                data: {
+                    labels: sistemas,
+                    datasets: [{
+                        label: descripcion,
+                        data: cantidades,
+                        backgroundColor: [
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(255, 205, 86, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(153, 102, 255, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(255, 205, 86, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(153, 102, 255, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: direccion,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }       
+    }
+
+</script>
+
+
+@code {
+
+    public Prioridades prioridades = new Prioridades();
+
+    public List<Prioridades> ListaPrioridades = new List<Prioridades>();
+    public List<Sistemas> ListaSistemas = new List<Sistemas>();
+    public List<Clientes> ListaClientes = new List<Clientes>();
+    public List<Tickets> ListaTickets = new List<Tickets>();
+    public List<Tickets> ListaTicketshoy = new List<Tickets>();
+
+
+    int cantidadPrioridades = 0, cantidadsistemas = 0, cantidadclientes = 0, cantidadticket = 0, cantidadtickethoy = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaPrioridades = await httpClient.GetFromJsonAsync<List<Prioridades>>("api/Prioridades");
+        cantidadPrioridades = ListaPrioridades.Count;
+
+        ListaSistemas = await httpClient.GetFromJsonAsync<List<Sistemas>>("api/Sistemas");
+        cantidadsistemas = ListaSistemas.Count;
+
+        ListaClientes = await httpClient.GetFromJsonAsync<List<Clientes>>("api/Clientes");
+        cantidadclientes = ListaClientes.Count;
+
+        ListaTickets = await httpClient.GetFromJsonAsync<List<Tickets>>("api/Tickets");
+        cantidadticket = ListaTickets.Count;
+
+        DateTime fechaActual = DateTime.Now.Date;
+        ListaTicketshoy = (await httpClient.GetFromJsonAsync<List<Tickets>>("api/Tickets"))!.Where(t => t.Fecha.Date == fechaActual).ToList();
+        cantidadtickethoy = ListaTicketshoy.Count;
+
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool verificador)
+    {
+
+        if (verificador)
+        {
+            var sistemasMasUtilizados = ListaTickets
+                .GroupBy(ticket => ticket.SistemaId)
+                .OrderByDescending(group => group.Count())
+                .Take(5)
+                .Select(group => new { SistemaId = group.Key, Cantidad = group.Count() })
+                .ToList();
+
+            var nombresSistemas = sistemasMasUtilizados
+                .Select(sistema => ListaSistemas.FirstOrDefault(s => s.SistemaId == sistema.SistemaId)?.Nombre)
+                .ToList();
+
+            await JSRuntime.InvokeVoidAsync("graficos", nombresSistemas.ToArray(), sistemasMasUtilizados.Select(s => s.Cantidad).ToArray(), "sistemastickets", "Cantidad", "bar", "x");
+          
+
+
+            var prioridadesMasUtilizadas = ListaTickets
+                .GroupBy(ticket => ticket.PrioridadId)
+                .OrderByDescending(group => group.Count())
+                .Take(5)
+                .Select(group => new { Prioridadid = group.Key, Cantidad = group.Count() })
+                .ToList();
+
+            var nombresPrioridad = prioridadesMasUtilizadas
+                .Select(prioridad => ListaPrioridades.FirstOrDefault(p => p.PrioridadId == prioridad.Prioridadid)?.Descripcion)
+                .ToList();
+
+            await JSRuntime.InvokeVoidAsync("graficos", nombresPrioridad.ToArray(), prioridadesMasUtilizadas.Select(s => s.Cantidad).ToArray(), "propiedadesusadas", "Cantidad", "line", "x");
+          
+
+
+            var clienteticketsMasUsado = ListaTickets
+               .GroupBy(ticket => ticket.ClienteId)
+               .OrderByDescending(group => group.Count())
+               .Take(5)
+               .Select(group => new { ClienteId = group.Key, Cantidad = group.Count() })
+               .ToList();
+
+            var nombresCliente = clienteticketsMasUsado
+                .Select(cliente => ListaClientes.FirstOrDefault(c => c.ClienteId == cliente.ClienteId)?.Nombres)
+                .ToList();
+
+            await JSRuntime.InvokeVoidAsync("graficos", nombresCliente.ToArray(), clienteticketsMasUsado.Select(s => s.Cantidad).ToArray(), "clientesticket", "Cantidad", "bar", "y");
+           
+        }
+    }
+}
+
+
