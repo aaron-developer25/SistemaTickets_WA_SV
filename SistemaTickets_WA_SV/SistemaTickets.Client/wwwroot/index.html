@@ -8,6 +8,10 @@
     <base href="/" />
     <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="./estilo/inicio.css" />
+    <link rel="stylesheet" href="./estilo/mensaje.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="SistemaTickets.Client.styles.css" rel="stylesheet" />
 </head>
@@ -27,6 +31,14 @@
         <a class="dismiss">🗙</a>
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
+
+    <script>
+        function playAudio(audioPath) {
+            var audio = new Audio(audioPath);
+            audio.play();
+        }
+    </script>
+
 </body>
 
 </html>
