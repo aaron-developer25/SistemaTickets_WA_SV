@@ -83,7 +83,7 @@
 
     public async Task Guardar()
     {
-        var guardado = await httpClient.PostAsJsonAsync("api/Sistemas", this.sistemas);
+        var guardado = await httpClient.PutAsJsonAsync("api/Sistemas", this.sistemas);
         if (guardado.IsSuccessStatusCode)
         {
             await MostrarMensaje("Guardado Existoso.", "Valido", "guardadoExito.mp3");
