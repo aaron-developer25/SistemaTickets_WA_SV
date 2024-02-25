@@ -1,0 +1,177 @@
+﻿@page "/indexcliente"
+
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+
+<EditForm Model="ListaClientes" class="border shadow-lg p-3 rounded">
+    <div class="card-header bg-primary text-white text-center py-2 rounded">
+        <h3 style="font-weight: bold;" class="mb-0 font-weight-bold">Centro de Clientes</h3>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3 align-items-end">
+            <div class="col-md-3">
+                <label style="font-weight: bold;" for="Filtro" class="form-label">Filtrar por:</label>
+                <select @bind="filtro" class="form-select">
+                    <option value="id">ID</option>
+                    <option value="nombre">Nombre</option>
+                    <option value="rnc">RNC</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label style="font-weight: bold;" for="ValorFiltro" class="form-label">B&uacute;squeda:</label>
+                <div class="input-group">
+                    <input @bind="valorFiltro" class="form-control" placeholder="Buscar" />
+                    <button @onclick="Buscar" class="btn btn-outline-primary" type="button">
+                        <span class="fas fa-search"></span> Buscar
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3 text-end">
+                <a href="/createCliente" class="btn btn-success" type="button"><span class="fas fa-plus"></span> Crear </a>
+            </div>
+        </div>
+    </div>
+    <table class="table table-bordered text-center">
+        <thead class="bg-primary text-white">
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>RNC</th>
+                <th>Tel&eacute;fono</th>
+                <th>Celular</th>
+                <th>Email</th>
+                <th>Direcci&oacute;n</th>
+                <th>Editar</th>
+                <th>Detalle</th>
+                <th>Eliminar</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (ListaClientes.Any())
+            {
+                @foreach (var cliente in ListaClientes)
+                {
+                    <tr>
+                        <td>@cliente.ClienteId</td>
+                        <td>@cliente.Nombres</td>
+                        <td>@cliente.RNC</td>
+                        <td>@cliente.Telefono</td>
+                        <td>@cliente.Celular</td>
+                        <td>@cliente.Email</td>
+                        <td>@cliente.Direccion</td>
+                        <td>
+                            <a href="/editarCliente/@cliente.ClienteId" style="border: none; background-color: transparent;" class="btn-editar">
+                                <img style="width: 32px; height: 32px;" src="./recursos/editar.png" alt="editar" />
+                            </a>
+                        </td>
+                        <td>
+                            <a href="/detailsCliente/@cliente.ClienteId" style="border: none; background-color: transparent;" class="btn-detalle">
+                                <img style="width: 32px; height: 32px;" src="./recursos/detalle.png" alt="detalle" />
+                            </a>
+                        </td>
+                        <td>
+                            <a href="/deleteCliente/@cliente.ClienteId" style="border: none; background-color: transparent;" class="btn-eliminar">
+                                <img style="width: 32px; height: 32px;" src="./recursos/eliminar.png" alt="eliminar" />
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="10" class="text-center">No se ha encontrado ningun cliente.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</EditForm>
+
+
+
+
+@if (ModalMensaje)
+{
+    <div class="modal d-block" style="z-index: 999999; transition: transform 0.3s ease;">
+        <div class="w-auto position-fixed top-50 start-50 translate-middle">
+            <div class="modal-content" style="border-radius: 20px;">
+
+                <div class="modal-body bg-@mensajeColor text-center text-white" style="border-radius: 15px;">
+                    <label class="fw-bold">@mensajeTexto</label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@code {
+
+    public Clientes clientes = new Clientes();
+
+    private string filtro = "id";
+    private string valorFiltro = "";
+
+    public List<Clientes> ListaClientes = new List<Clientes>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaClientes = await httpClient.GetFromJsonAsync<List<Clientes>>("api/Clientes");
+    }
+
+    private async Task Buscar()
+    {
+        if (valorFiltro.Trim() != "")
+        {
+            if (filtro == "id" && int.TryParse(valorFiltro, out int clienteId))
+            {
+                ListaClientes = (await httpClient.GetFromJsonAsync<List<Clientes>>("api/Clientes"))!.Where(c => c.ClienteId == clienteId).ToList();
+            }
+
+            else if (filtro == "nombre")
+            {
+                ListaClientes = (await httpClient.GetFromJsonAsync<List<Clientes>>("api/Clientes"))!.Where(c => c.Nombres == valorFiltro).ToList();
+            }
+            else if (filtro == "rnc")
+            {
+                ListaClientes = (await httpClient.GetFromJsonAsync<List<Clientes>>("api/Clientes"))!.Where(c => c.RNC == valorFiltro).ToList();
+            }
+
+            if (ListaClientes == null || ListaClientes.Count == 0)
+            {
+                await MostrarMensaje("Cliente no encontrado", "Invalido", "clientenoencontrado.mp3");
+            }
+        }
+        else
+        {
+            ListaClientes = await httpClient.GetFromJsonAsync<List<Clientes>>("api/Clientes");
+        }
+    }
+
+
+    string mensajeTexto = "", mensajeColor = ""; bool ModalMensaje = false;
+
+    public async Task MostrarMensaje(string mensaje, string tipo, string audio)
+    {
+        mensajeTexto = mensaje;
+        await JSRuntime.InvokeVoidAsync("playAudio", "recursos/audios/" + audio);
+
+        if (tipo == "Valido")
+        {
+            mensajeColor = "success";
+        }
+        else
+        {
+            mensajeColor = "danger";
+        }
+
+        ModalMensaje = true;
+        StateHasChanged();
+        await Task.Delay(3000);
+        ModalMensaje = false;
+        StateHasChanged();
+    }
+
+}
