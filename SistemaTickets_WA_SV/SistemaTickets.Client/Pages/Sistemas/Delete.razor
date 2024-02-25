@@ -1,0 +1,121 @@
+﻿@page "/deletessistema/{SistemaID:int}";
+
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<div class="card shadow-lg border-0 rounded" style="background-color: #f8f9fa;">
+    <div class="card-header bg-primary text-white text-center py-2 rounded">
+        <h3 style="font-weight: bold;" class="mb-0 font-weight-bold">Eliminar Sistemas</h3>
+    </div>
+
+    <div class="card-body text-center">
+        <div class="col-md-6 mb-3 mx-auto">
+            <label style="font-weight: bold;" class="form-label font-weight-bold">ID:</label>
+            <span>@sistemas.SistemaId</span>
+        </div>
+
+        <div class="col-md-6 mb-3 mx-auto">
+            <label style="font-weight: bold;" class="form-label font-weight-bold">Nombre:</label>
+            <span>@sistemas.Nombre</span>
+        </div>
+
+        <div class="col-md-12 mb-3 mx-auto">
+            <p style="font-weight: bold;">¿Seguro que deseas eliminar este sistema?</p> 
+        </div>
+
+    </div>
+
+    <div class="card-footer bg-light d-flex justify-content-center">
+        <div class="btn-group">
+            <button @onclick="Eliminar" type="button" class="btn btn-success btn-block"><span class="fas fa-check"></span> Sí</button>
+            <a href="/indexsistemas/" class="btn btn-danger btn-block"><span class="fas fa-times"></span> No</a>
+        </div>
+    </div>
+
+</div>
+
+
+
+@if (ModalMensaje)
+{
+    <div class="modal d-block" style="z-index: 999999; transition: transform 0.3s ease;">
+        <div class="w-auto position-fixed top-50 start-50 translate-middle">
+            <div class="modal-content" style="border-radius: 20px;">
+
+                <div class="modal-body bg-@mensajeColor text-center text-white" style="border-radius: 15px;">
+                    <label class="fw-bold">@mensajeTexto</label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@code {
+
+    public Sistemas sistemas = new Sistemas();
+
+    [Parameter]
+    public int SistemaID { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (SistemaID > 0)
+        {
+            await Buscar();
+        }
+    }
+
+    public async Task Buscar()
+    {
+        var sistemaEncontrado = await httpClient.GetFromJsonAsync<Sistemas>("api/Sistemas/" + SistemaID);
+        if (sistemaEncontrado != null)
+        {
+            this.sistemas = sistemaEncontrado;
+        }
+        else
+        {
+            await MostrarMensaje("Sistema no encontrado", "Invalido", "sistemanoencontrado.mp3");
+        }
+    }
+
+    public async Task Eliminar()
+    {
+        var eliminado = await httpClient.DeleteAsync("api/Sistemas/" + SistemaID);
+        if (eliminado.IsSuccessStatusCode)
+        {
+            await MostrarMensaje("Eliminado Existoso.", "Valido", "eliminadoExito.mp3");
+            NavigationManager.NavigateTo("/indexsistemas");
+        }
+        else
+        {
+            await MostrarMensaje("Error Inesperado.", "Invalido", "errorinesperado.mp3");
+        }
+    }
+
+    string mensajeTexto = "", mensajeColor = ""; bool ModalMensaje = false;
+
+    public async Task MostrarMensaje(string mensaje, string tipo, string audio)
+    {
+        mensajeTexto = mensaje;
+        await JSRuntime.InvokeVoidAsync("playAudio", "recursos/audios/" + audio);
+
+        if (tipo == "Valido")
+        {
+            mensajeColor = "success";
+        }
+        else
+        {
+            mensajeColor = "danger";
+        }
+
+        ModalMensaje = true;
+        StateHasChanged();
+        await Task.Delay(3000);
+        ModalMensaje = false;
+        StateHasChanged();
+    }
+}
