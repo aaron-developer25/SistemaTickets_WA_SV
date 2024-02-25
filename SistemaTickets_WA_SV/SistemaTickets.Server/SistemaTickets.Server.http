@@ -1,0 +1,6 @@
+@SistemaTickets.Server_HostAddress = http://localhost:5231
+
+GET {{SistemaTickets.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
