@@ -1,0 +1,171 @@
+﻿@page "/detailsticket/{TicketID:int}";
+
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+    <div class="card shadow-lg border-0 rounded" style="background-color: #f8f9fa;">
+        <div class="card-header bg-primary text-white text-center py-2 rounded">
+            <h3 style="font-weight: bold;" class="mb-0 font-weight-bold">Detalles Tickets</h3>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row">
+                <div class="col-md-4 mb-2">
+                    <label style="font-weight: bold;" class="form-label ">Ticket ID:</label>
+                <span>@tickets.TicketId</span>
+                </div>
+
+                <div class="col-md-4 mb-2">
+                    <label style="font-weight: bold;" class="form-label">Fecha:</label>
+                <span>@tickets.Fecha</span>
+                </div>
+ 
+                <div class="col-md-4 mb-2">
+                    <label style="font-weight: bold;" class="form-label">Cliente ID:</label>
+                <span>@tickets.ClienteId</span>
+                </div>
+            </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-2">
+                <label style="font-weight: bold;" class="form-label ">Sistema ID:</label>
+                <span>@tickets.SistemaId</span>
+            </div>
+
+            <div class="col-md-4 mb-2">
+                <label style="font-weight: bold;" class="form-label">Priorirdad ID:</label>
+                <span>@tickets.PrioridadId</span>
+            </div>
+
+            <div class="col-md-4 mb-2">
+                <label style="font-weight: bold;" class="form-label">Solicutado por:</label>
+                <span>@tickets.Solicitadopor</span>
+            </div>
+        </div>
+
+
+        <div class="row">
+            <div class="col-md-4 mb-2">
+                <label style="font-weight: bold;" class="form-label ">Asunto:</label>
+                <span>@tickets.Asunto</span>
+            </div>
+
+            <div class="col-md-4 mb-2">
+                <label style="font-weight: bold;" class="form-label">Descripci&oacute;n:</label>
+                <span>@tickets.Descripcion</span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="mb-4"></div>
+            <table class="table table-bordered text-center">
+
+                <thead class="bg-secondary text-white">
+                    <tr>
+                        <th class="col-3">Emisor</th>
+                        <th class="col-7">Mensaje</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @if (ListaDetalles.Any())
+                    {
+                        @foreach (var item in ListaDetalles)
+                        {
+                            <tr>
+                                <td class="col-3">@item.Emisor</td>
+                                <td class="col-7">@item.Mensaje</td>                              
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="3">No hay mensajes...</td></tr>
+                    }
+                </tbody>
+
+            </table>
+
+        </div>
+
+            <div class="card-footer bg-light d-flex justify-content-end">
+                <div class="btn-group">
+                <a type="button" href="/indextickets/" class="btn btn-outline-danger"><span class="fas fa-arrow-left"></span> Retroceder </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+@if (ModalMensaje)
+{
+    <div class="modal d-block" style="z-index: 999999; transition: transform 0.3s ease;">
+        <div class="w-auto position-fixed top-50 start-50 translate-middle">
+            <div class="modal-content" style="border-radius: 20px;">
+
+                <div class="modal-body bg-@mensajeColor text-center text-white" style="border-radius: 15px;">
+                    <label class="fw-bold">@mensajeTexto</label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+@code {
+
+    public Tickets tickets = new Tickets();
+    public List<TicketsDetalle> ListaDetalles = new List<TicketsDetalle>();
+
+    [Parameter]
+    public int TicketID { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (TicketID > 0)
+        {
+            await Buscar();
+        }
+    }
+
+    public async Task Buscar()
+    {
+        var ticketEncontrado = await httpClient.GetFromJsonAsync<Tickets>("api/Tickets/" + TicketID);
+        if (ticketEncontrado != null)
+        {
+            this.tickets = ticketEncontrado;
+            ListaDetalles = (await httpClient.GetFromJsonAsync<List<TicketsDetalle>>("api/TicketsDetalle"))!.Where(d => d.TicketId == TicketID).ToList();
+        }
+        else
+        {
+            await MostrarMensaje("Ticket no encontrado", "Invalido", "ticketnoencontrado.mp3");
+        }
+    }
+
+
+    string mensajeTexto = "", mensajeColor = ""; bool ModalMensaje = false;
+
+    public async Task MostrarMensaje(string mensaje, string tipo, string audio)
+    {
+        mensajeTexto = mensaje;
+        await JSRuntime.InvokeVoidAsync("playAudio", "recursos/audios/" + audio);
+
+        if (tipo == "Valido")
+        {
+            mensajeColor = "success";
+        }
+        else
+        {
+            mensajeColor = "danger";
+        }
+
+        ModalMensaje = true;
+        StateHasChanged();
+        await Task.Delay(3000);
+        ModalMensaje = false;
+        StateHasChanged();
+    }
+}

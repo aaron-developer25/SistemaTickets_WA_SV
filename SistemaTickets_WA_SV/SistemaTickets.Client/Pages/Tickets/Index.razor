@@ -1,0 +1,181 @@
+﻿@page "/indextickets"
+
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+
+
+<EditForm Model="ListaTickets" class="border shadow-lg p-3 rounded">
+    <div class="card-header bg-primary text-white text-center py-2 rounded">
+        <h3 style="font-weight: bold;"  class="mb-0 font-weight-bold">Centro de Tickets</h3>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3 align-items-end">
+            <div class="col-md-3">
+                <label style="font-weight: bold;"  for="Filtro" class="form-label">Filtrar por:</label>
+                <select @bind="filtro" class="form-select">
+                    <option value="ticketId">Ticket ID</option>
+                    <option value="clienteId">Cliente ID</option>
+                    <option value="asunto">Asunto</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label style="font-weight: bold;" for="ValorFiltro" class="form-label">B&uacute;squeda:</label>
+                <div class="input-group">
+                    <input @bind="valorFiltro" class="form-control" placeholder="Buscar" />
+                    <button @onclick="Buscar" class="btn btn-outline-primary" type="button">
+                        <span class="fas fa-search"></span> Buscar
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3 text-end">
+                <a href="/createticket" class="btn btn-success" type="button"><span class="fas fa-plus"></span> Crear </a>
+            </div>
+        </div>
+    </div>
+    <table class="table table-bordered text-center">
+        <thead class="bg-primary text-white">
+            <tr>
+                <th>Ticket ID</th>
+                <th>Solicitado por</th>
+                <th>Asunto</th>
+                <th>Fecha</th>
+                <th>Cliente ID</th>
+                <th>Sistema ID</th>
+                <th>Prioridad</th>
+                <th>Editar</th>
+                <th>Detalle</th>
+                <th>Eliminar</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (ListaTickets.Any())
+            {
+                @foreach (var ticket in ListaTickets)
+                {
+                    <tr>
+                        <td>@ticket.TicketId</td>
+                        <td>@ticket.Solicitadopor</td>
+                        <td>@ticket.Asunto</td>
+                        <td>@ticket.Fecha</td>
+                        <td>@ticket.ClienteId</td>
+                        <td>@ticket.SistemaId</td>
+                        <td>@ticket.PrioridadId</td>
+                        <td>
+                            <a href="/editarticket/@ticket.TicketId" style="border: none; background-color: transparent;" class="btn-editar">
+                                <img style="width: 32px; height: 32px;" src="./recursos/editar.png" alt="editar" />
+                            </a>
+
+                        </td>
+                        <td>
+                            <a href="/detailsticket/@ticket.TicketId" style="border: none; background-color: transparent;" class="btn-detalle">
+                                <img style="width: 32px; height: 32px;" src="./recursos/detalle.png" alt="detalle" />
+                            </a>
+                        </td>
+                        <td>
+                            <a href="/deleteticket/@ticket.TicketId" style="border: none; background-color: transparent;" class="btn-eliminar">
+                                <img style="width: 32px; height: 32px;" src="./recursos/eliminar.png" alt="eliminar" />
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="10" class="text-center">No se ha encontrado ningun ticket.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</EditForm>
+
+
+
+@if (ModalMensaje)
+{
+    <div class="modal d-block" style="z-index: 999999; transition: transform 0.3s ease;">
+        <div class="w-auto position-fixed top-50 start-50 translate-middle">
+            <div class="modal-content" style="border-radius: 20px;">
+
+                <div class="modal-body bg-@mensajeColor text-center text-white" style="border-radius: 15px;">
+                    <label class="fw-bold">@mensajeTexto</label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+
+
+@code {
+
+    public Tickets tickets = new Tickets();
+
+    private string filtro = "ticketId";
+    private string valorFiltro = "";
+
+
+    public List<Tickets> ListaTickets = new List<Tickets>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaTickets = await httpClient.GetFromJsonAsync<List<Tickets>>("api/Tickets");
+    }
+
+
+    private async Task Buscar()
+    {
+        if (valorFiltro.Trim() != "")
+        {
+
+            if (filtro == "ticketId" && int.TryParse(valorFiltro, out int ticketId))
+            {
+                ListaTickets = (await httpClient.GetFromJsonAsync<List<Tickets>>("api/Tickets"))!.Where(t => t.TicketId == ticketId).ToList();
+            }
+
+            else if (filtro == "clienteId" && int.TryParse(valorFiltro, out int clienteId))
+            {
+                ListaTickets = (await httpClient.GetFromJsonAsync<List<Tickets>>("api/Tickets"))!.Where(t => t.ClienteId == clienteId).ToList();
+            }
+            else if (filtro == "asunto")
+            {
+                ListaTickets = (await httpClient.GetFromJsonAsync<List<Tickets>>("api/Tickets"))!.Where(t => t.Asunto == valorFiltro).ToList();
+            }
+
+            if (ListaTickets == null || ListaTickets.Count == 0)
+            {
+                await MostrarMensaje("Ticket no encontrado", "Invalido", "ticketnoencontrado.mp3");
+            }
+        }
+        else
+        {
+            ListaTickets = await httpClient.GetFromJsonAsync<List<Tickets>>("api/Tickets");
+        }
+    }
+
+    string mensajeTexto = "", mensajeColor = ""; bool ModalMensaje = false;
+
+    public async Task MostrarMensaje(string mensaje, string tipo, string audio)
+    {
+        mensajeTexto = mensaje;
+        await JSRuntime.InvokeVoidAsync("playAudio", "recursos/audios/" + audio);
+
+        if (tipo == "Valido")
+        {
+            mensajeColor = "success";
+        }
+        else
+        {
+            mensajeColor = "danger";
+        }
+
+        ModalMensaje = true;
+        StateHasChanged();
+        await Task.Delay(3000);
+        ModalMensaje = false;
+        StateHasChanged();
+    }
+
+}

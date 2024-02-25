@@ -1,0 +1,275 @@
+﻿@page "/createticket";
+
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+
+<EditForm Model="tickets" OnValidSubmit="Guardar">
+    <DataAnnotationsValidator />
+
+    <div class="card shadow-lg border-0 rounded" style="background-color: #f8f9fa;">
+        <div class="card-header bg-primary text-white text-center py-2 rounded">
+            <h3 style="font-weight: bold;" class="mb-0 font-weight-bold">Registrar Tickets</h3>
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="fw-bold bi bi-calendar-date"> Fecha</label>
+                    <InputDate @bind-Value="tickets.Fecha" class="form-control"></InputDate>
+                    <ValidationMessage For="@(() => tickets.Fecha)" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-bold bi bi-key"> Cliente:</label>
+                    <InputSelect @bind-Value="tickets.ClienteId" class="form-select">
+                        @foreach (var cliente in ListaClientes)
+                        {
+                            <option value="@cliente.ClienteId">@cliente.Nombres</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => tickets.ClienteId)" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="fw-bold bi bi-key"> Sistema:</label>
+                    <InputSelect @bind-Value="tickets.SistemaId" class="form-select">
+                        @foreach (var sistema in ListaSistemas)
+                        {
+                            <option value="@sistema.SistemaId">@sistema.Nombre</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => tickets.SistemaId)" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-bold bi bi-key"> Prioridad:</label>
+                    <InputSelect @bind-Value="tickets.PrioridadId" class="form-select">
+                        @foreach (var prioridad in ListaPrioridades)
+                        {
+                            <option value="@prioridad.PrioridadId">@prioridad.Descripcion</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => tickets.PrioridadId)" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="Solicitadopor" class="fw-bold bi bi-key">Solicitado por:</label>
+                    <InputText @bind-Value="tickets.Solicitadopor" class="form-control" placeholder="Ingrese quien solicita" />
+                    <ValidationMessage For="@(() => tickets.Solicitadopor)" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="Asunto" class="fw-bold bi bi-key">Asunto:</label>
+                    <InputText @bind-Value="tickets.Asunto" class="form-control" placeholder="Ingrese el asunto" />
+                    <ValidationMessage For="@(() => tickets.Asunto)" />
+                </div>
+            </div>
+
+            <div class="col-md-0">
+                <label for="Descripcion" class="fw-bold bi bi-key">Descripci&oacute;n:</label>
+                <InputTextArea @bind-Value="tickets.Descripcion" class="form-control" rows="4" placeholder="Ingrese su descripci&oacute;n"></InputTextArea>
+                <ValidationMessage For="@(() => tickets.Descripcion)" />
+            </div>
+        </div>
+
+
+        <!-- INICIO DETALLES DEL TICKET -->
+        <div class="card-header bg-primary text-white text-center">
+            <h3 style="font-weight: bold;" class="mb-0 font-weight-bold">Detalles del Ticket</h3>
+        </div>
+
+        <div class="modal-body">
+
+            <div class="row">
+                
+                <div class="col">
+                    <div>
+                        <label class="fw-bold">Emisor:</label>
+                        <InputText class="form-control mb-2" @bind-Value="detalles.Emisor"></InputText>
+                    </div>
+                    <div>
+                        <label class="fw-bold">Mensaje:</label>
+                        <InputTextArea class="form-control mb-2" @bind-Value="detalles.Mensaje"></InputTextArea>
+                    </div>
+                    <div class="text-end mb-2">
+                        <button type="button" class="btn btn-success" @onclick="agregarDetalle"><i class="fas fa-plus"></i> Agregar</button>
+                    </div>
+                </div>
+
+                <div class="col-5">
+                    <div class="mb-4"></div>
+                    <table class="table table-bordered text-center">
+
+                        <thead class="bg-secondary text-white">
+                            <tr>
+                                <th class="col-3">Emisor</th>
+                                <th class="col-7">Mensaje</th>
+                                <th class="col-1">Eliminar</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @if (ListaDetalles.Any())
+                            {
+                                @foreach (var item in ListaDetalles)
+                                {
+                                    <tr>
+                                        <td class="col-3">@item.Emisor</td>
+                                        <td class="col-7">@item.Mensaje</td>
+                                        <td class="col-1"><button type="button" style="background: transparent; border: none;" @onclick="(() => eliminarDetalle(item))"><img style="width: 32px; height: 32px;" src="./recursos/eliminar.png" alt="eliminar" /></button></td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="3">No hay mensajes...</td></tr>
+                            }
+                        </tbody>
+
+                    </table>
+
+                </div>
+            </div>  
+        </div>
+        <!-- FIN DETALLES DEL TICKET -->
+
+        <div class="card-footer bg-light d-flex justify-content-end">
+            <div class="btn-group">
+                <a type="button" href="/indextickets/" class="btn btn-outline-danger"><span class="fas fa-arrow-left"></span> Retroceder </a>
+                <button type="submit" class="btn btn-outline-success"><span class="fas fa-save"></span> Guardar </button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+
+
+           
+
+
+
+
+
+
+@if (ModalMensaje)
+{
+    <div class="modal d-block" style="z-index: 999999; transition: transform 0.3s ease;">
+        <div class="w-auto position-fixed top-50 start-50 translate-middle">
+            <div class="modal-content" style="border-radius: 20px;">
+
+                <div class="modal-body bg-@mensajeColor text-center text-white" style="border-radius: 15px;">
+                    <label class="fw-bold">@mensajeTexto</label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+
+
+@code {
+
+    public Tickets tickets = new Tickets();
+    public Clientes clientes = new Clientes();
+    public TicketsDetalle detalles = new TicketsDetalle();
+
+
+
+    public List<Prioridades> ListaPrioridades = new List<Prioridades>();
+    public List<Clientes> ListaClientes = new List<Clientes>();
+    public List<Sistemas> ListaSistemas = new List<Sistemas>();
+    public List<TicketsDetalle> ListaDetalles = new List<TicketsDetalle>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaClientes = await httpClient.GetFromJsonAsync<List<Clientes>>("api/Clientes");
+        ListaPrioridades = await httpClient.GetFromJsonAsync<List<Prioridades>>("api/Prioridades");
+        ListaSistemas = await httpClient.GetFromJsonAsync<List<Sistemas>>("api/Sistemas");
+        tickets.Fecha = DateTime.Today;
+    }
+
+
+    public async Task Guardar()
+    {
+        var guardadoTicket = await httpClient.PostAsJsonAsync("api/Tickets", this.tickets);
+
+        if (guardadoTicket.IsSuccessStatusCode)
+        {
+            var ticketCreado = await guardadoTicket.Content.ReadFromJsonAsync<Tickets>();
+
+            //Agregamos los detalles del ticket
+            foreach (var detalle in ListaDetalles)
+            {
+                TicketsDetalle ticketsDetalleNew = new TicketsDetalle();
+                ticketsDetalleNew.TicketId = ticketCreado.TicketId;
+                ticketsDetalleNew.Emisor = detalle.Emisor;
+                ticketsDetalleNew.Mensaje = detalle.Mensaje;
+
+                await httpClient.PostAsJsonAsync("api/TicketsDetalle", ticketsDetalleNew);
+            }
+    
+             await MostrarMensaje("Guardado Existoso.", "Valido", "guardadoExito.mp3");
+             NavigationManager.NavigateTo("/indextickets");          
+        }
+        else
+        {
+            await MostrarMensaje("No se puso contectar a la API!", "Invalido", "errorinesperado.mp3");
+        }
+    }
+
+
+    public async Task agregarDetalle()
+    {
+        if (!string.IsNullOrEmpty(detalles.Emisor) && !string.IsNullOrEmpty(detalles.Mensaje))
+        {
+            ListaDetalles.Add(new TicketsDetalle(0, detalles.Emisor, detalles.Mensaje));
+            detalles.Emisor = "";
+            detalles.Mensaje = "";
+        }
+        else
+        {
+            await MostrarMensaje("Revise que los campos estén llenos...", "Inválido", "");
+        }
+    }
+
+    public async Task eliminarDetalle(TicketsDetalle details)
+    {
+        detalles.Emisor = details.Emisor;
+        detalles.Mensaje = details.Mensaje;
+        ListaDetalles.Remove(details);
+    }
+
+
+
+    string mensajeTexto = "", mensajeColor = ""; bool ModalMensaje = false;
+
+    public async Task MostrarMensaje(string mensaje, string tipo, string audio)
+    {
+        mensajeTexto = mensaje;
+        await JSRuntime.InvokeVoidAsync("playAudio", "recursos/audios/" + audio);
+
+        if (tipo == "Valido")
+        {
+            mensajeColor = "success";
+        }
+        else
+        {
+            mensajeColor = "danger";
+        }
+
+        ModalMensaje = true;
+        StateHasChanged();
+        await Task.Delay(3000);
+        ModalMensaje = false;
+        StateHasChanged();
+    }
+
+}

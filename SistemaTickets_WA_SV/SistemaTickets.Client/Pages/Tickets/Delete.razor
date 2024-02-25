@@ -1,0 +1,176 @@
+﻿@page "/deleteticket/{TicketID:int}";
+
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<div class="card shadow-lg border-0 rounded" style="background-color: #f8f9fa;">
+    <div class="card-header bg-primary text-white text-center py-2 rounded">
+        <h3 style="font-weight: bold;" class="mb-0 font-weight-bold">Eliminar Tickets</h3>
+    </div>
+
+    <div class="card-body text-center">
+        <div class="col-md-6 mb-3 mx-auto">
+            <label style="font-weight: bold;" class="form-label font-weight-bold">Ticket ID:</label>
+            <span>@tickets.TicketId</span>
+        </div>
+
+        <div class="col-md-6 mb-3 mx-auto">
+            <label style="font-weight: bold;" class="form-label font-weight-bold">Cliente ID:</label>
+            <span>@tickets.ClienteId</span>
+        </div>
+
+        <div class="col-md-6 mb-3 mx-auto">
+            <label style="font-weight: bold;" class="form-label font-weight-bold">Asunto:</label>
+            <span>@tickets.Asunto</span>
+        </div>
+
+        <div class="col-md-6 mx-auto">
+            <label style="font-weight: bold;" class="form-label font-weight-bold">Fecha:</label>
+            <span>@tickets.Fecha</span>
+        </div>
+
+        <div class="row">
+            <div class="mb-4"></div>
+            <table class="table table-bordered text-center">
+
+                <thead class="bg-secondary text-white">
+                    <tr>
+                        <th class="col-3">Emisor</th>
+                        <th class="col-7">Mensaje</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @if (ListaDetalles.Any())
+                    {
+                        @foreach (var item in ListaDetalles)
+                        {
+                            <tr>
+                                <td class="col-3">@item.Emisor</td>
+                                <td class="col-7">@item.Mensaje</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="3">No hay mensajes...</td></tr>
+                    }
+                </tbody>
+
+            </table>
+        </div>
+
+        <div class="col-md-12 mb-3 mx-auto">
+            <p style="font-weight: bold;">¿Seguro que deseas eliminar este ticket?</p> 
+        </div>
+
+    </div>
+
+    <div class="card-footer bg-light d-flex justify-content-center">
+        <div class="btn-group">
+            <button @onclick="Eliminar" type="button" class="btn btn-success btn-block"><span class="fas fa-check"></span> Sí</button>
+            <a href="/indextickets/" class="btn btn-danger btn-block"><span class="fas fa-times"></span> No</a>
+        </div>
+    </div>
+
+</div>
+
+
+
+@if (ModalMensaje)
+{
+    <div class="modal d-block" style="z-index: 999999; transition: transform 0.3s ease;">
+        <div class="w-auto position-fixed top-50 start-50 translate-middle">
+            <div class="modal-content" style="border-radius: 20px;">
+
+                <div class="modal-body bg-@mensajeColor text-center text-white" style="border-radius: 15px;">
+                    <label class="fw-bold">@mensajeTexto</label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@code {
+
+    public Tickets tickets = new Tickets();
+    public List<TicketsDetalle> ListaDetalles = new List<TicketsDetalle>();
+
+    [Parameter]
+    public int TicketID { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (TicketID > 0)
+        {
+            await Buscar();
+        }
+    }
+
+    public async Task Buscar()
+    {
+        var ticketEncontrado = await httpClient.GetFromJsonAsync<Tickets>("api/Tickets/" + TicketID);
+        if (ticketEncontrado != null)
+        {
+            this.tickets = ticketEncontrado;
+            ListaDetalles = (await httpClient.GetFromJsonAsync<List<TicketsDetalle>>("api/TicketsDetalle"))!.Where(d => d.TicketId == TicketID).ToList();
+        }
+        else
+        {
+            await MostrarMensaje("Ticket no encontrado", "Invalido", "ticketnoencontrado.mp3");
+        }
+    }
+
+
+    public async Task Eliminar()
+    {
+        var eliminado = await httpClient.DeleteAsync("api/Tickets/" + TicketID);
+        if (eliminado.IsSuccessStatusCode)
+        {
+
+            foreach (var detalle in ListaDetalles)
+            {
+                if (detalle.TicketId == TicketID)
+                {
+                    await httpClient.DeleteAsync("api/TicketsDetalle/" + detalle.Id);
+                }
+                
+            }
+
+            await MostrarMensaje("Eliminado Existoso.", "Valido", "eliminadoExito.mp3");
+            NavigationManager.NavigateTo("/indextickets");
+        }
+        else
+        {
+            await MostrarMensaje("Error Inesperado.", "Invalido", "errorinesperado.mp3");
+        }
+    }
+
+
+    string mensajeTexto = "", mensajeColor = ""; bool ModalMensaje = false;
+
+    public async Task MostrarMensaje(string mensaje, string tipo, string audio)
+    {
+        mensajeTexto = mensaje;
+        await JSRuntime.InvokeVoidAsync("playAudio", "recursos/audios/" + audio);
+
+        if (tipo == "Valido")
+        {
+            mensajeColor = "success";
+        }
+        else
+        {
+            mensajeColor = "danger";
+        }
+
+        ModalMensaje = true;
+        StateHasChanged();
+        await Task.Delay(3000);
+        ModalMensaje = false;
+        StateHasChanged();
+    }
+}
