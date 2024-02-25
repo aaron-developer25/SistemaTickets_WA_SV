@@ -1,0 +1,129 @@
+﻿@page "/editarprioridades/{PrioridadID:int}";
+
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+
+<EditForm Model="prioridades" OnValidSubmit="Guardar">
+    <DataAnnotationsValidator />
+    <div class="card shadow-lg border-0 rounded" style="background-color: #f8f9fa;">
+
+        <div class="card-header bg-primary text-white text-center py-2 rounded">
+            <h3 style="font-weight: bold;" class="mb-0 font-weight-bold">Editar Prioridades</h3>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+                    <label for="Descripci&oacute;n" style="font-weight: bold;" class="form-label">Descripci&oacute;n:</label>
+                    <InputText @bind-Value="prioridades.Descripcion" class="form-control" placeholder="Ingrese su Descripci&oacute;n" />
+                    <ValidationMessage For="@(() => prioridades.Descripcion)" />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="DiasCompromiso" style="font-weight: bold;" class="form-label">D&iacute;as Compromiso:</label>
+                    <InputNumber @bind-Value="prioridades.DiasCompromiso" class="form-control" placeholder="Ingrese los D&iacute;as Compromiso" />
+                    <ValidationMessage For="@(() => prioridades.DiasCompromiso)" />
+                </div>
+
+            </div>
+        </div>
+
+        <div class="card-footer bg-light d-flex justify-content-end">
+            <div class="btn-group">
+                <a type="button" href="/indexprioridades/" class="btn btn-outline-danger"><span class="fas fa-arrow-left"></span> Retroceder </a>
+                <button type="submit" class="btn btn-outline-success"><span class="fas fa-save"></span> Guardar </button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+
+
+@if (ModalMensaje)
+{
+    <div class="modal d-block" style="z-index: 999999; transition: transform 0.3s ease;">
+        <div class="w-auto position-fixed top-50 start-50 translate-middle">
+            <div class="modal-content" style="border-radius: 20px;">
+
+                <div class="modal-body bg-@mensajeColor text-center text-white" style="border-radius: 15px;">
+                    <label class="fw-bold">@mensajeTexto</label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@code {
+
+    public Prioridades prioridades = new Prioridades();
+
+    [Parameter]
+    public int PrioridadID { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (PrioridadID > 0)
+        {
+            await Buscar();
+        }
+    }
+
+    public async Task Buscar()
+    {
+        var prioridadEncontrado = await httpClient.GetFromJsonAsync<Prioridades>("api/Prioridades/" + PrioridadID);
+        if (prioridadEncontrado != null)
+        {
+            this.prioridades = prioridadEncontrado;
+        }
+        else
+        {
+            await MostrarMensaje("Prioridad no encontrada", "Invalido", "prioridadNoEncontrada.mp3");
+        }
+    }
+
+
+    public async Task Guardar()
+    {
+        var guardado = await httpClient.PutAsJsonAsync("api/Prioridades", this.prioridades);
+        if (guardado.IsSuccessStatusCode)
+        {
+            await MostrarMensaje("Guardado Existoso.", "Valido", "guardadoExito.mp3");
+            NavigationManager.NavigateTo("/indexprioridades");
+        }
+        else
+        {
+            await MostrarMensaje("No se puso contectar a la API!", "Invalido", "errorinesperado.mp3");
+        }
+    }
+
+
+    string mensajeTexto = "", mensajeColor = ""; bool ModalMensaje = false;
+
+    public async Task MostrarMensaje(string mensaje, string tipo, string audio)
+    {
+        mensajeTexto = mensaje;
+        await JSRuntime.InvokeVoidAsync("playAudio", "recursos/audios/" + audio);
+
+        if (tipo == "Valido")
+        {
+            mensajeColor = "success";
+        }
+        else
+        {
+            mensajeColor = "danger";
+        }
+
+        ModalMensaje = true;
+        StateHasChanged();
+        await Task.Delay(3000);
+        ModalMensaje = false;
+        StateHasChanged();
+    }
+}

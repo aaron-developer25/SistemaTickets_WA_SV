@@ -1,0 +1,109 @@
+﻿@page "/detailsprioridades/{PrioridadID:int}";
+
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<div class="card shadow-lg border-0 rounded" style="background-color: #f8f9fa;">
+    <div class="card-header bg-primary text-white text-center py-2 rounded">
+        <h3 style="font-weight: bold;" class="mb-0 font-weight-bold">Detalles de Prioridades</h3>
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+            <div class="col-md-4 mb-2">
+                <label style="font-weight: bold;" class="form-label ">ID:</label>
+                <span>@prioridades.PrioridadId</span>
+            </div>
+
+            <div class="col-md-4 mb-2">
+                <label style="font-weight: bold;" class="form-label">Descripci&oacute;n:</label>
+                <span>@prioridades.Descripcion</span>
+            </div>
+
+            <div class="col-md-4 mb-2">
+                <label style="font-weight: bold;" class="form-label">D&iacute;as Compromiso:</label>
+                <span>@prioridades.DiasCompromiso</span>
+            </div>
+        </div>
+
+        <div class="card-footer bg-light d-flex justify-content-end">
+            <div class="btn-group">
+                <a type="button" href="/indexprioridades/" class="btn btn-outline-danger"><span class="fas fa-arrow-left"></span> Retroceder </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+@if (ModalMensaje)
+{
+    <div class="modal d-block" style="z-index: 999999; transition: transform 0.3s ease;">
+        <div class="w-auto position-fixed top-50 start-50 translate-middle">
+            <div class="modal-content" style="border-radius: 20px;">
+
+                <div class="modal-body bg-@mensajeColor text-center text-white" style="border-radius: 15px;">
+                    <label class="fw-bold">@mensajeTexto</label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@code {
+
+    public Prioridades prioridades = new Prioridades();
+
+    [Parameter]
+    public int PrioridadID { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (PrioridadID > 0)
+        {
+            await Buscar();
+        }
+    }
+
+    public async Task Buscar()
+    {
+        var prioridadEncontrado = await httpClient.GetFromJsonAsync<Prioridades>("api/Prioridades/" + PrioridadID);
+        if (prioridadEncontrado != null)
+        {
+            this.prioridades = prioridadEncontrado;
+        }
+        else
+        {
+            await MostrarMensaje("Prioridad no encontrada", "Invalido", "prioridadNoEncontrada.mp3");
+        }
+    }
+
+
+    string mensajeTexto = "", mensajeColor = ""; bool ModalMensaje = false;
+
+    public async Task MostrarMensaje(string mensaje, string tipo, string audio)
+    {
+        mensajeTexto = mensaje;
+        await JSRuntime.InvokeVoidAsync("playAudio", "recursos/audios/" + audio);
+
+        if (tipo == "Valido")
+        {
+            mensajeColor = "success";
+        }
+        else
+        {
+            mensajeColor = "danger";
+        }
+
+        ModalMensaje = true;
+        StateHasChanged();
+        await Task.Delay(3000);
+        ModalMensaje = false;
+        StateHasChanged();
+    }
+}
