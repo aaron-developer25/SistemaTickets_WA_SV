@@ -272,13 +272,7 @@
     {
         detalles.Emisor = details.Emisor;
         detalles.Mensaje = details.Mensaje;
-        
-        var detalleEncontrado = await httpClient.GetFromJsonAsync<TicketsDetalle>("api/TicketsDetalle/" + details.Id);
-        if (detalleEncontrado != null)
-        {
-            ListaDetallesEliminados.Add(new TicketsDetalle(details.Id, details.Emisor, details.Mensaje));
-        }
-
+        ListaDetallesEliminados.Add(new TicketsDetalle(details.Id, details.Emisor, details.Mensaje));
         ListaDetalles.Remove(details);
     }
 
