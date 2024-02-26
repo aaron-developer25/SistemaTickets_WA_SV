@@ -215,9 +215,9 @@
 
                 await httpClient.PostAsJsonAsync("api/TicketsDetalle", ticketsDetalleNew);
             }
-    
-             await MostrarMensaje("Guardado Existoso.", "Valido", "guardadoExito.mp3");
-             NavigationManager.NavigateTo("/indextickets");          
+
+            await MostrarMensaje("Guardado Existoso.", "Valido", "guardadoExito.mp3");
+            NavigationManager.NavigateTo("/indextickets");          
         }
         else
         {
@@ -228,11 +228,27 @@
 
     public async Task agregarDetalle()
     {
+        bool existe = false;
+
         if (!string.IsNullOrEmpty(detalles.Emisor) && !string.IsNullOrEmpty(detalles.Mensaje))
         {
-            ListaDetalles.Add(new TicketsDetalle(0, detalles.Emisor, detalles.Mensaje));
-            detalles.Emisor = "";
-            detalles.Mensaje = "";
+            foreach (var details in ListaDetalles)
+            {
+                if (detalles.Emisor == details.Emisor)
+                {
+                    existe = true;
+                }
+            }  
+            if (existe)
+            {
+                await MostrarMensaje("Ya existe ese emisor...", "Inválido", "");
+            }
+            else
+            {
+                ListaDetalles.Add(new TicketsDetalle(0, detalles.Emisor, detalles.Mensaje));
+                detalles.Emisor = "";
+                detalles.Mensaje = "";
+            }
         }
         else
         {
